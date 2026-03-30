@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+enum InvitationStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  password    String
+  role        Role         @default(CLIENT)
+  invitations Invitation[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("users")
+}
+
+model Template {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  thumbnail   String?
+  baseConfig  Json         @map("base_config")
+  invitations Invitation[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("templates")
+}
+
+model Invitation {
+  id         String           @id @default(cuid())
+  userId     String           @map("user_id")
+  templateId String           @map("template_id")
+  slug       String           @unique
+  status     InvitationStatus @default(DRAFT)
+  content    Json
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template   Template         @relation(fields: [templateId], references: [id])
+  media      Media[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([templateId])
+  @@map("invitations")
+}
+
+model Media {
+  id           String     @id @default(cuid())
+  invitationId String     @map("invitation_id")
+  url          String
+  order        Int
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([invitationId, order])
+  @@index([invitationId])
+  @@map("media")
+}
