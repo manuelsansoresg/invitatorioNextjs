@@ -20,6 +20,7 @@ export function EditorClient({ template, initialInvitation = null, initialWeddin
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadsInFlight, setUploadsInFlight] = useState(0);
   const uploadChainRef = useRef<Promise<void>>(Promise.resolve());
 
   const [wedding, setWedding] = useState<WeddingContent>(() => {
@@ -86,10 +87,18 @@ export function EditorClient({ template, initialInvitation = null, initialWeddin
     const form = new FormData();
     form.set("file", file);
     const res = await fetch("/api/upload", { method: "POST", body: form });
-    const data = (await res.json()) as { url?: string; error?: string };
-    if (!res.ok || !data.url) {
-      throw new Error(data.error || "upload_failed");
+    let data: { url?: string; error?: string } | null = null;
+    try {
+      data = (await res.json()) as { url?: string; error?: string };
+    } catch {
+      data = null;
     }
+
+    if (!res.ok || !data?.url) {
+      const reason = data?.error ? String(data.error) : `http_${res.status}`;
+      throw new Error(reason);
+    }
+
     return data.url;
   };
 
@@ -97,7 +106,11 @@ export function EditorClient({ template, initialInvitation = null, initialWeddin
     setUploadError(null);
     uploadChainRef.current = uploadChainRef.current
       .then(async () => {
+        setUploadsInFlight((c) => c + 1);
         await fn();
+      })
+      .finally(() => {
+        setUploadsInFlight((c) => Math.max(0, c - 1));
       })
       .catch((err: unknown) => {
         const message =
@@ -552,6 +565,8 @@ export function EditorClient({ template, initialInvitation = null, initialWeddin
             <WeddingTemplate
               content={wedding}
               editable
+              uploading={uploadsInFlight > 0}
+              uploadError={uploadError}
               onHeroFile={onHeroFile}
               onAvatarFile={onAvatarFile}
               onGalleryFile={onGalleryFile}

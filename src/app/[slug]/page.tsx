@@ -21,9 +21,9 @@ function asStringArray(value: unknown) {
 export default async function InvitationPublicPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const { slug } = params;
+  const { slug } = await params;
 
   const invitation = await prisma.invitation.findUnique({
     where: { slug },

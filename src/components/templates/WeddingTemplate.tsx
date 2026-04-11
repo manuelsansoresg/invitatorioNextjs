@@ -75,13 +75,14 @@ function Countdown({ iso }: { iso: string }) {
 }
 
 function getFilesFromDrop(e: DragEvent) {
-  const files = Array.from(e.dataTransfer.files || []);
-  return files.filter((f) => f.type.startsWith("image/"));
+  return Array.from(e.dataTransfer.files || []);
 }
 
 type WeddingTemplateProps = {
   content: WeddingContent;
   editable?: boolean;
+  uploading?: boolean;
+  uploadError?: string | null;
   onHeroFile?: (file: File) => void;
   onAvatarFile?: (file: File) => void;
   onGalleryFile?: (index: number | null, file: File) => void;
@@ -93,6 +94,8 @@ type WeddingTemplateProps = {
 export function WeddingTemplate({
   content,
   editable = false,
+  uploading = false,
+  uploadError = null,
   onHeroFile,
   onAvatarFile,
   onGalleryFile,
@@ -105,6 +108,22 @@ export function WeddingTemplate({
   const hero = content.heroImageUrl || "";
   const [active, setActive] = useState(0);
   const activeIndex = gallery.length ? Math.min(active, gallery.length - 1) : 0;
+  const [pickNotice, setPickNotice] = useState<string | null>(null);
+  const pickNoticeTimerRef = useRef<number | null>(null);
+
+  const fileInputClassName = "absolute -left-[9999px] h-px w-px opacity-0";
+  const heroInputId = "hero-image-picker";
+  const avatarInputId = "avatar-image-picker";
+  const galleryAddInputId = "gallery-add-image-picker";
+
+  useEffect(() => {
+    return () => {
+      if (pickNoticeTimerRef.current !== null) {
+        window.clearTimeout(pickNoticeTimerRef.current);
+        pickNoticeTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (gallery.length < 2) return;
@@ -121,50 +140,88 @@ export function WeddingTemplate({
   const [galleryReplaceIndex, setGalleryReplaceIndex] = useState<number | null>(null);
   const giftReplaceInputRef = useRef<HTMLInputElement | null>(null);
   const [giftReplaceIndex, setGiftReplaceIndex] = useState<number | null>(null);
-  const openHeroPicker = () => heroInputRef.current?.click();
-  const openAvatarPicker = () => avatarInputRef.current?.click();
-  const openGalleryPicker = () => galleryAddInputRef.current?.click();
   const openGiftPicker = (index: number) => {
     setGiftReplaceIndex(index);
     giftReplaceInputRef.current?.click();
   };
 
+  const showPickNotice = (message: string) => {
+    setPickNotice(message);
+    if (pickNoticeTimerRef.current !== null) window.clearTimeout(pickNoticeTimerRef.current);
+    pickNoticeTimerRef.current = window.setTimeout(() => {
+      setPickNotice(null);
+      pickNoticeTimerRef.current = null;
+    }, 2500);
+  };
+
   return (
     <article className="w-full bg-white">
+      {editable && (uploading || uploadError || pickNotice) ? (
+        <div className="pointer-events-none fixed left-4 top-4 z-[60] w-[min(520px,calc(100vw-2rem))]">
+          <div
+            className={[
+              "rounded-2xl border px-4 py-3 text-sm shadow-sm backdrop-blur",
+              uploadError ? "border-red-200 bg-red-50/95 text-red-700" : "border-black/10 bg-white/90 text-zinc-800",
+            ].join(" ")}
+          >
+            {uploadError ? `Error al subir imagen: ${uploadError}` : uploading ? "Subiendo imagen…" : pickNotice}
+          </div>
+        </div>
+      ) : null}
       <input
         ref={heroInputRef}
+        id={heroInputId}
         type="file"
         accept="image/*"
-        className="hidden"
+        className={fileInputClassName}
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (!file) return;
+          if (!file) {
+            showPickNotice("No se seleccionó archivo");
+            return;
+          }
+          showPickNotice(`Seleccionado: ${file.name || "imagen"}`);
           onHeroFile?.(file);
           e.currentTarget.value = "";
         }}
       />
       <input
         ref={avatarInputRef}
+        id={avatarInputId}
         type="file"
         accept="image/*"
-        className="hidden"
+        className={fileInputClassName}
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (!file) return;
+          if (!file) {
+            showPickNotice("No se seleccionó archivo");
+            return;
+          }
+          showPickNotice(`Seleccionado: ${file.name || "imagen"}`);
           onAvatarFile?.(file);
           e.currentTarget.value = "";
         }}
       />
       <input
         ref={galleryAddInputRef}
+        id={galleryAddInputId}
         type="file"
         accept="image/*"
         multiple
-        className="hidden"
+        className={fileInputClassName}
         onChange={(e) => {
-          const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith("image/"));
-          if (!files.length) return;
-          for (const file of files) onGalleryFile?.(null, file);
+          const files = Array.from(e.target.files || []);
+          if (!files.length) {
+            showPickNotice("No se seleccionó archivo");
+            return;
+          }
+          showPickNotice(`Seleccionados: ${files.length}`);
+          for (let i = 0; i < files.length; i += 1) {
+            const file = files[i];
+            if (!file) continue;
+            if (gallery.length < 4) onGalleryFile?.(null, file);
+            else onGalleryFile?.((activeIndex + i) % 4, file);
+          }
           e.currentTarget.value = "";
         }}
       />
@@ -172,7 +229,7 @@ export function WeddingTemplate({
         ref={galleryReplaceInputRef}
         type="file"
         accept="image/*"
-        className="hidden"
+        className={fileInputClassName}
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (!file) return;
@@ -186,7 +243,7 @@ export function WeddingTemplate({
         ref={giftReplaceInputRef}
         type="file"
         accept="image/*"
-        className="hidden"
+        className={fileInputClassName}
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (!file) return;
@@ -216,24 +273,24 @@ export function WeddingTemplate({
             : undefined
         }
       >
-        <div
-          className={editable ? "relative h-[420px] w-full cursor-pointer" : "relative h-[420px] w-full"}
-          onClick={editable ? openHeroPicker : undefined}
-        >
-          {hero ? <Image src={hero} alt="" fill className="object-cover" priority /> : null}
-          <div className="absolute inset-0 bg-black/10" />
-        </div>
+        {editable ? (
+          <label htmlFor={heroInputId} className="relative block h-[420px] w-full cursor-pointer">
+            {hero ? <Image src={hero} alt="" fill className="object-cover" priority /> : null}
+            <div className="absolute inset-0 bg-black/10" />
+          </label>
+        ) : (
+          <div className="relative h-[420px] w-full">
+            {hero ? <Image src={hero} alt="" fill className="object-cover" priority /> : null}
+            <div className="absolute inset-0 bg-black/10" />
+          </div>
+        )}
 
         <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center px-6 text-center text-white">
           {editable ? (
-            <button
-              type="button"
-              onClick={openHeroPicker}
-              className="pointer-events-auto absolute top-14 flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white/25 text-center text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur hover:bg-white/35"
-            >
+            <div className="absolute top-14 flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white/25 text-center text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur">
               <span>CLIC PARA SUBIR FOTO</span>
               <span className="mt-2 text-4xl leading-none">↑</span>
-            </button>
+            </div>
           ) : null}
 
           <p className="text-xs font-semibold uppercase tracking-[0.55em] text-white/90">
@@ -279,11 +336,7 @@ export function WeddingTemplate({
               </div>
 
               <div
-                className={[
-                  "relative mx-auto h-[280px] w-[280px] overflow-hidden rounded-full border border-black/10 bg-zinc-200",
-                  editable ? "cursor-pointer" : "",
-                ].join(" ")}
-                onClick={editable ? openAvatarPicker : undefined}
+                className="relative mx-auto h-[280px] w-[280px] overflow-hidden rounded-full border border-black/10 bg-zinc-200"
                 onDragOver={
                   editable
                     ? (e) => {
@@ -301,6 +354,11 @@ export function WeddingTemplate({
                     : undefined
                 }
               >
+                {editable ? (
+                  <label htmlFor={avatarInputId} className="absolute inset-0 cursor-pointer">
+                    <span className="sr-only">Subir foto</span>
+                  </label>
+                ) : null}
                 {content.avatarUrl ? <Image src={content.avatarUrl} alt="" fill className="object-cover" /> : null}
               </div>
 
@@ -336,31 +394,35 @@ export function WeddingTemplate({
             : undefined
         }
       >
-        <div
-          className={editable ? "relative w-full cursor-pointer overflow-hidden bg-[#3e3e3e]" : "relative w-full overflow-hidden bg-[#3e3e3e]"}
-          onClick={editable ? openGalleryPicker : undefined}
-        >
-          {gallery.length ? (
-            <div className="relative h-[360px] w-full sm:h-[420px]">
-              <Image src={gallery[activeIndex]} alt="" fill className="object-cover" sizes="1200px" />
-              <div className="absolute inset-0 bg-black/10" />
-            </div>
-          ) : (
-            <div className="relative h-[360px] w-full sm:h-[420px]" />
-          )}
+        {editable ? (
+          <label htmlFor={galleryAddInputId} className="relative block w-full cursor-pointer overflow-hidden bg-[#3e3e3e]">
+            {gallery.length ? (
+              <div className="relative h-[360px] w-full sm:h-[420px]">
+                <Image src={gallery[activeIndex]} alt="" fill className="object-cover" sizes="1200px" />
+                <div className="absolute inset-0 bg-black/10" />
+              </div>
+            ) : (
+              <div className="relative h-[360px] w-full sm:h-[420px]" />
+            )}
 
-          {editable ? (
-            <button
-              type="button"
-              onClick={openGalleryPicker}
-              className="absolute left-1/2 top-1/2 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full bg-white/25 text-center text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur hover:bg-white/35"
-            >
+            <div className="absolute left-1/2 top-1/2 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full bg-white/25 text-center text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur">
               <span>CLIC PARA</span>
               <span>SUBIR FOTOS</span>
               <span className="mt-2 text-4xl leading-none">↑</span>
-            </button>
-          ) : null}
-        </div>
+            </div>
+          </label>
+        ) : (
+          <div className="relative w-full overflow-hidden bg-[#3e3e3e]">
+            {gallery.length ? (
+              <div className="relative h-[360px] w-full sm:h-[420px]">
+                <Image src={gallery[activeIndex]} alt="" fill className="object-cover" sizes="1200px" />
+                <div className="absolute inset-0 bg-black/10" />
+              </div>
+            ) : (
+              <div className="relative h-[360px] w-full sm:h-[420px]" />
+            )}
+          </div>
+        )}
 
         <div className="bg-white py-6">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-center gap-4 px-6">
@@ -372,15 +434,20 @@ export function WeddingTemplate({
                   className="group relative h-20 w-20 overflow-hidden rounded-md bg-zinc-200"
                 >
                   {src ? <Image src={src} alt="" fill className="object-cover" sizes="80px" /> : null}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!src) openGalleryPicker();
-                      else setActive(idx);
-                    }}
-                    className="absolute inset-0"
-                    aria-label={src ? `Ver imagen ${idx + 1}` : `Subir imagen ${idx + 1}`}
-                  />
+                  {src ? (
+                    <button
+                      type="button"
+                      onClick={() => setActive(idx)}
+                      className="absolute inset-0"
+                      aria-label={`Ver imagen ${idx + 1}`}
+                    />
+                  ) : editable ? (
+                    <label
+                      htmlFor={galleryAddInputId}
+                      className="absolute inset-0 cursor-pointer"
+                      aria-label={`Subir imagen ${idx + 1}`}
+                    />
+                  ) : null}
 
                   {editable && src ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/0 transition group-hover:bg-black/40">
