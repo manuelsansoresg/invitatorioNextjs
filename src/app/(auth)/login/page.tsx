@@ -1,4 +1,3 @@
-import { login } from "./actions";
 import Link from "next/link";
 
 export const runtime = "nodejs";
@@ -28,7 +27,8 @@ export default async function LoginPage({
       ) : null}
 
       <form
-        action={login}
+        action="/api/login"
+        method="post"
         className="mt-8 space-y-4 rounded-3xl border border-black/5 bg-white p-6 shadow-sm"
       >
         <label className="block text-sm font-medium text-zinc-700">
