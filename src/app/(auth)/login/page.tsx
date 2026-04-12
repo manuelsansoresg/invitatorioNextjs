@@ -6,9 +6,9 @@ export const runtime = "nodejs";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; reason?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, reason } = await searchParams;
 
   return (
     <div className="mx-auto w-full max-w-md px-4 py-16">
@@ -21,7 +21,9 @@ export default async function LoginPage({
 
       {error ? (
         <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error === "server" ? "Error del servidor. Revisa variables de entorno y conexión a la base de datos." : "Email o contraseña incorrectos."}
+          {error === "server"
+            ? `Error del servidor (${reason || "sin_detalle"}).`
+            : "Email o contraseña incorrectos."}
         </div>
       ) : null}
 
