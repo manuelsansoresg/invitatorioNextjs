@@ -73,3 +73,13 @@ model Media {
   @@index([invitationId])
   @@map("media")
 }
+
+model File {
+  id        String   @id @default(cuid())
+  name      String
+  mimeType  String
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  @@map("files")
+}
