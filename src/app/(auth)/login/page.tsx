@@ -1,6 +1,8 @@
 import { login } from "./actions";
 import Link from "next/link";
 
+export const runtime = "nodejs";
+
 export default async function LoginPage({
   searchParams,
 }: {

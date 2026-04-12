@@ -5,8 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth";
 import { setSessionCookie } from "@/lib/session";
 
-export const runtime = "nodejs";
-
 export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");

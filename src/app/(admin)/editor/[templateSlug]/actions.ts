@@ -5,8 +5,6 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 
-export const runtime = "nodejs";
-
 export async function saveDraftInvitation(input: {
   templateId: string;
   invitationId?: string;
