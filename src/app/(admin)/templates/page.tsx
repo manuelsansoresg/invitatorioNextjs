@@ -25,6 +25,7 @@ export default async function TemplatesPage() {
         </div>
         <Link
           href="/logout"
+          prefetch={false}
           className="inline-flex h-10 items-center justify-center rounded-full border border-black/10 bg-white px-4 text-sm font-semibold text-zinc-700 hover:border-brand-purple/30 hover:text-brand-purple"
         >
           Salir
