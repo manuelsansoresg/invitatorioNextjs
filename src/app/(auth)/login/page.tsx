@@ -19,7 +19,7 @@ export default async function LoginPage({
 
       {error ? (
         <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Email o contraseña incorrectos.
+          {error === "server" ? "Error del servidor. Revisa variables de entorno y conexión a la base de datos." : "Email o contraseña incorrectos."}
         </div>
       ) : null}
 

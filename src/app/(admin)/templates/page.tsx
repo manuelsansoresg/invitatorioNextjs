@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 
+export const runtime = "nodejs";
+
 export default async function TemplatesPage() {
   await requireAdmin();
 

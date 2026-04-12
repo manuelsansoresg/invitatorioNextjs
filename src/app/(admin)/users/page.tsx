@@ -1,5 +1,7 @@
 import { requireAdmin } from "@/lib/require-admin";
 
+export const runtime = "nodejs";
+
 export default async function UsersAdminPage() {
   await requireAdmin();
 

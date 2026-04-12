@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { WeddingTemplate, type WeddingContent } from "@/components/templates/WeddingTemplate";
 import { XVTemplate } from "@/components/templates/XVTemplate";
 
+export const runtime = "nodejs";
+
 function asString(value: unknown) {
   return typeof value === "string" ? value : "";
 }

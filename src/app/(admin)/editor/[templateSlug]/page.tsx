@@ -4,6 +4,8 @@ import { requireAdmin } from "@/lib/require-admin";
 import type { WeddingContent } from "@/components/templates/WeddingTemplate";
 import { EditorClient } from "./EditorClient";
 
+export const runtime = "nodejs";
+
 export default async function TemplateEditorPage({
   params,
   searchParams,
