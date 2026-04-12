@@ -9,6 +9,10 @@ function redirectTo(requestUrl: string, path: string) {
   return NextResponse.redirect(new URL(path, requestUrl));
 }
 
+function redirectTo303(requestUrl: string, path: string) {
+  return NextResponse.redirect(new URL(path, requestUrl), 303);
+}
+
 export async function POST(request: Request) {
   if (!process.env.AUTH_SECRET) return redirectTo(request.url, "/login?error=server&reason=env_auth_secret");
   if (!process.env.DATABASE_URL) return redirectTo(request.url, "/login?error=server&reason=env_database_url");
@@ -35,7 +39,8 @@ export async function POST(request: Request) {
   if (!ok) return redirectTo(request.url, "/login?error=1");
 
   const token = signSession({ userId: user.id, role: user.role });
-  const res = redirectTo(request.url, "/templates");
+  const res = redirectTo303(request.url, "/templates");
+  res.headers.set("cache-control", "no-store");
   res.cookies.set("invitatorio_session", token, {
     httpOnly: true,
     sameSite: "lax",
@@ -45,4 +50,3 @@ export async function POST(request: Request) {
   });
   return res;
 }
-
