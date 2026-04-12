@@ -41,10 +41,11 @@ export async function POST(request: Request) {
   const token = signSession({ userId: user.id, role: user.role });
   const res = redirectTo303(request.url, "/templates");
   res.headers.set("cache-control", "no-store");
+  const isProd = process.env.NODE_ENV === "production";
   res.cookies.set("invitatorio_session", token, {
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
   });

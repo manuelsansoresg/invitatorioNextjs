@@ -8,20 +8,22 @@ export async function setSessionCookie(input: {
   role: "ADMIN" | "CLIENT";
 }) {
   const token = signSession(input);
+  const isProd = process.env.NODE_ENV === "production";
   (await cookies()).set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
   });
 }
 
 export async function clearSessionCookie() {
+  const isProd = process.env.NODE_ENV === "production";
   (await cookies()).set(SESSION_COOKIE_NAME, "", {
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
     path: "/",
     maxAge: 0,
   });
