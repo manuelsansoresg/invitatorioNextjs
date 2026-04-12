@@ -2,19 +2,21 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    
-    // the model is `file` but the IDE linter might be complaining.
-    // Let's use Prisma generic query or ignore the error.
-    const file = await (prisma as any).file.findUnique({
-      where: { id },
-    });
 
-    if (!file) {
+    const rows = await prisma.$queryRaw<Array<{ mimeType: string; data: Buffer }>>`
+      SELECT "mimeType", "data"
+      FROM "files"
+      WHERE "id" = ${id}
+      LIMIT 1
+    `;
+    const file = rows[0] ?? null;
+
+    if (!file?.data) {
       return new NextResponse("Not Found", { status: 404 });
     }
 
@@ -22,7 +24,8 @@ export async function GET(
     headers.set("Content-Type", file.mimeType);
     headers.set("Cache-Control", "public, max-age=31536000, immutable");
 
-    return new NextResponse(file.data, { headers });
+    const bytes = new Uint8Array(file.data);
+    return new NextResponse(bytes, { headers });
   } catch (error) {
     console.error("Error serving image:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
