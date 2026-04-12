@@ -32,3 +32,15 @@ export async function getSession() {
   if (!token) return null;
   return verifySession(token);
 }
+
+export async function getSessionState(): Promise<
+  | { state: "missing"; session: null }
+  | { state: "invalid"; session: null }
+  | { state: "ok"; session: ReturnType<typeof verifySession> extends infer R ? Exclude<R, null> : never }
+> {
+  const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
+  if (!token) return { state: "missing", session: null };
+  const session = verifySession(token);
+  if (!session) return { state: "invalid", session: null };
+  return { state: "ok", session };
+}
